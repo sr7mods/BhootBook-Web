@@ -1,0 +1,2232 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BhootBook</title>
+  <!-- Google Fonts & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chilanka&family=Creepster&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Firebase Compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <style>
+    /* 5 THEMES DEFINITION */
+    :root, body.theme-bhoot-dark {
+      --bg-canvas: #050508;
+      --bg-panel: #0a0b12;
+      --bg-card: #0f111c;
+      --accent-phantom: #00ff9d;
+      --accent-glow: rgba(0, 255, 157, 0.4);
+      --accent-secondary: #8a2be2;
+      --accent-alert: #ff003c;
+      --text-main: #e2e8f0;
+      --text-muted: #718096;
+      --border-color: rgba(0, 255, 157, 0.18);
+    }
+    body.theme-nishi-purple {
+      --bg-canvas: #090412;
+      --bg-panel: #120924;
+      --bg-card: #1b0e36;
+      --accent-phantom: #c084fc;
+      --accent-glow: rgba(192, 132, 252, 0.4);
+      --accent-secondary: #8a2be2;
+      --accent-alert: #ff007f;
+      --text-main: #f3e8ff;
+      --text-muted: #9382ad;
+      --border-color: rgba(192, 132, 252, 0.25);
+    }
+    body.theme-blood-moon {
+      --bg-canvas: #080203;
+      --bg-panel: #140507;
+      --bg-card: #1f080b;
+      --accent-phantom: #ff003c;
+      --accent-glow: rgba(255, 0, 60, 0.45);
+      --accent-secondary: #ff5e00;
+      --accent-alert: #ffea00;
+      --text-main: #ffe4e6;
+      --text-muted: #a3757a;
+      --border-color: rgba(255, 0, 60, 0.25);
+    }
+    body.theme-spectral-white {
+      --bg-canvas: #f1f4f9;
+      --bg-panel: #ffffff;
+      --bg-card: #e4e9f2;
+      --accent-phantom: #059669;
+      --accent-glow: rgba(5, 150, 105, 0.3);
+      --accent-secondary: #7c3aed;
+      --accent-alert: #dc2626;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --border-color: rgba(15, 23, 42, 0.15);
+    }
+    body.theme-haunted-fog {
+      --bg-canvas: #040608;
+      --bg-panel: #090e13;
+      --bg-card: #0f171f;
+      --accent-phantom: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.4);
+      --accent-secondary: #818cf8;
+      --accent-alert: #f43f5e;
+      --text-main: #e0f2fe;
+      --text-muted: #64748b;
+      --border-color: rgba(56, 189, 248, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-user-select: none;
+      user-select: none;
+      font-family: 'Hind Siliguri', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Fog animation for Haunted Fog theme */
+    .fog-layer {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 200%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(56,189,248,0.05), transparent, rgba(129,140,248,0.05), transparent);
+      pointer-events: none;
+      z-index: 1;
+      animation: fogPan 35s linear infinite;
+    }
+    body.theme-haunted-fog .fog-layer { display: block; }
+    @keyframes fogPan {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    h1, h2, h3, .brand-font {
+      font-family: 'Creepster', cursive;
+      letter-spacing: 1px;
+    }
+
+    /* TOAST SYSTEM */
+    #bhootToastContainer {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 999999;
+      pointer-events: none;
+    }
+    .bhoot-toast {
+      pointer-events: auto;
+      min-width: 280px;
+      max-width: 400px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: var(--text-main);
+      font-size: 13.5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+      animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .bhoot-toast.success { border-color: var(--accent-phantom); box-shadow: 0 0 15px var(--accent-glow); }
+    .bhoot-toast.error { border-color: var(--accent-alert); box-shadow: 0 0 15px rgba(255, 0, 60, 0.4); }
+    .bhoot-toast.warning { border-color: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
+    .bhoot-toast.info { border-color: var(--accent-secondary); box-shadow: 0 0 15px rgba(138, 43, 226, 0.4); }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* SKELETON / LOADING AURA */
+    #spectralLoadingAura {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: var(--bg-canvas);
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      transition: opacity 0.4s ease;
+    }
+    .aura-circle {
+      width: 70px; height: 70px;
+      border-radius: 50%;
+      border: 2px solid var(--accent-phantom);
+      box-shadow: 0 0 25px var(--accent-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: var(--accent-phantom);
+      animation: pulseAura 1.6s infinite ease-in-out;
+    }
+    @keyframes pulseAura {
+      0%, 100% { transform: scale(0.92); box-shadow: 0 0 15px var(--accent-glow); }
+      50% { transform: scale(1.08); box-shadow: 0 0 35px var(--accent-glow); }
+    }
+
+    /* HEADER & BARS */
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+    .header-logo {
+      font-size: 24px;
+      color: var(--accent-phantom);
+      text-shadow: 0 0 10px var(--accent-glow);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .icon-btn {
+      position: relative;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text-main);
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .icon-btn:hover, .icon-btn.active {
+      border-color: var(--accent-phantom);
+      color: var(--accent-phantom);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+    .badge-counter {
+      position: absolute;
+      top: -4px; right: -4px;
+      background: var(--accent-alert);
+      color: #fff;
+      font-size: 10px;
+      font-weight: bold;
+      border-radius: 10px;
+      padding: 1px 5px;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    /* SYSTEM NOTICE LIVE BANNER */
+    #systemLiveNoticeBanner {
+      display: none;
+      background: linear-gradient(90deg, rgba(255,215,0,0.15), rgba(255,0,60,0.15));
+      border-bottom: 1px solid #ffd700;
+      padding: 8px 16px;
+      font-size: 13px;
+      color: #ffd700;
+      align-items: center;
+      justify-content: space-between;
+      animation: bannerSlide 0.3s ease;
+      z-index: 45;
+      position: relative;
+    }
+    @keyframes bannerSlide {
+      from { transform: translateY(-100%); }
+      to { transform: translateY(0); }
+    }
+
+    /* MAIN CONTAINER & FEED */
+    .app-main {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 16px 12px 90px;
+      position: relative;
+      z-index: 2;
+    }
+    .bhoot-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    /* CREATE POST */
+    .composer-textarea {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-size: 14.5px;
+      resize: none;
+      min-height: 70px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-phantom {
+      background: var(--accent-phantom);
+      color: #050508;
+    }
+    .btn-phantom:hover {
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--text-main);
+    }
+    .btn-outline:hover {
+      border-color: var(--accent-phantom);
+      color: var(--accent-phantom);
+    }
+    .btn-blood {
+      background: var(--accent-alert);
+      color: #fff;
+    }
+
+    /* POST ITEM */
+    .post-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .post-author-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .ghost-avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: var(--accent-phantom);
+    }
+    .ghost-avatar.ghost-mode {
+      opacity: 0.45;
+      border-style: dashed;
+    }
+    .rank-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .rank-custom { background: rgba(255,215,0,0.18); color: #ffd700; border: 1px solid #ffd700; }
+    .rank-bramha { background: rgba(255,215,0,0.2); color: #ffd700; border: 1px solid #ffd700; }
+    .rank-ghyagho { background: rgba(255,0,60,0.2); color: #ff003c; border: 1px solid #ff003c; }
+    .rank-general { background: rgba(0,255,157,0.15); color: var(--accent-phantom); border: 1px solid var(--accent-phantom); }
+
+    .post-content {
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 12px;
+      word-break: break-word;
+    }
+    .post-media {
+      width: 100%;
+      border-radius: 8px;
+      max-height: 420px;
+      object-fit: cover;
+      margin-bottom: 12px;
+      border: 1px solid var(--border-color);
+    }
+    .post-actions-bar {
+      display: flex;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding-top: 8px;
+      gap: 8px;
+    }
+    .action-pill {
+      flex: 1;
+      padding: 6px;
+      border-radius: 6px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .action-pill:hover, .action-pill.active {
+      color: var(--accent-phantom);
+      background: rgba(0,255,157,0.08);
+    }
+
+    /* FULLSCREEN BHOOTGRAM VIEW */
+    #viewMessenger {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: var(--bg-canvas);
+      z-index: 60;
+      flex-direction: column;
+    }
+    .messenger-header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .messenger-layout {
+      flex: 1;
+      display: flex;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+    }
+    .messenger-sidebar {
+      width: 320px;
+      border-right: 1px solid var(--border-color);
+      background: var(--bg-panel);
+      display: flex;
+      flex-direction: column;
+    }
+    .messenger-chat-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-canvas);
+      position: relative;
+    }
+    @media (max-width: 768px) {
+      .messenger-sidebar.hide-mobile { display: none; }
+      .messenger-chat-pane.hide-mobile { display: none; }
+    }
+    .chat-messages-scroll {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .chat-bubble {
+      max-width: 75%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      position: relative;
+      word-break: break-word;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .chat-bubble.mine {
+      align-self: flex-end;
+      background: var(--accent-phantom);
+      color: #050508;
+      border-bottom-right-radius: 2px;
+    }
+    .chat-bubble.theirs {
+      align-self: flex-start;
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-bottom-left-radius: 2px;
+    }
+    .quoted-box {
+      background: rgba(0,0,0,0.15);
+      border-left: 3px solid #050508;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      margin-bottom: 6px;
+    }
+    .chat-bubble.theirs .quoted-box {
+      border-left-color: var(--accent-phantom);
+      background: rgba(255,255,255,0.05);
+    }
+
+    /* SWIPE / SLIDE TO REPLY */
+    .bubble-drag-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .reply-peek-icon {
+      font-size: 14px;
+      color: var(--accent-phantom);
+      opacity: 0.8;
+      cursor: pointer;
+    }
+
+    /* MODAL OVERLAY */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(5px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 20px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    }
+    .form-input {
+      width: 100%;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      outline: none;
+    }
+    .form-input:focus {
+      border-color: var(--accent-phantom);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    /* BOTTOM DOCK BAR */
+    .bottom-dock {
+      position: fixed;
+      bottom: 0; left: 0; width: 100%;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0;
+      z-index: 40;
+    }
+    .dock-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 10.5px;
+      gap: 3px;
+      cursor: pointer;
+    }
+    .dock-btn i { font-size: 17px; }
+    .dock-btn.active, .dock-btn:hover { color: var(--accent-phantom); }
+  </style>
+</head>
+<body class="theme-bhoot-dark">
+
+  <div class="fog-layer"></div>
+
+  <!-- SKELETON / SPECTRAL LOADING AURA -->
+  <div id="spectralLoadingAura">
+    <div class="aura-circle">
+      <i class="fa-solid fa-ghost"></i>
+    </div>
+    <div style="font-size: 16px; font-weight: 600; color: var(--accent-phantom); text-shadow: 0 0 10px var(--accent-glow);">
+      প্রেতলোক জাগ্রত হচ্ছে...
+    </div>
+  </div>
+
+  <!-- IN-APP TOAST CONTAINER -->
+  <div id="bhootToastContainer"></div>
+
+  <!-- CUSTOM CONFIRM MODAL -->
+  <div class="modal-overlay" id="bhootConfirmModal">
+    <div class="modal-box" style="text-align: center;">
+      <i class="fa-solid fa-skull-crossbones" style="font-size: 42px; color: var(--accent-phantom); margin-bottom: 12px;"></i>
+      <h3 id="bhootConfirmTitle" style="font-size: 18px; margin-bottom: 8px;">নিশ্চিত করুন</h3>
+      <p id="bhootConfirmMsg" style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6; margin-bottom: 20px;"></p>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-outline" id="btnConfirmCancel" style="flex: 1;">[ বাতিল ]</button>
+        <button class="btn btn-phantom" id="btnConfirmOk" style="flex: 1;">[ নিশ্চিত করুন ]</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM PROMPT MODAL -->
+  <div class="modal-overlay" id="bhootPromptModal">
+    <div class="modal-box">
+      <h3 id="bhootPromptTitle" style="font-size: 18px; margin-bottom: 12px; color: var(--accent-phantom);">ইনপুট দিন</h3>
+      <input type="text" id="bhootPromptInput" class="form-input" style="margin-bottom: 16px;" />
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button class="btn btn-outline" id="btnPromptCancel">[ বাতিল ]</button>
+        <button class="btn btn-phantom" id="btnPromptOk">[ নিশ্চিত ]</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BANNED SCREEN OVERLAY -->
+  <div id="bannedScreenOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #050508; z-index: 999999; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center;">
+    <i class="fa-solid fa-ban" style="font-size: 64px; color: #ff003c; margin-bottom: 16px; filter: drop-shadow(0 0 15px #ff003c);"></i>
+    <h1 style="font-size: 28px; color: #ff003c; margin-bottom: 10px;">প্রেতলোক থেকে আপনি নির্বাসিত!</h1>
+    <p id="banOverlayReason" style="font-size: 14px; color: #94a3b8; max-width: 460px; margin-bottom: 24px; line-height: 1.6;"></p>
+    <button class="btn btn-outline" onclick="handleLogout()">বিদায় নিন</button>
+  </div>
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-logo" onclick="switchView('feed')">
+      <i class="fa-solid fa-ghost"></i> BhootBook
+    </div>
+    <div class="header-actions" id="headerNavActions" style="display: none;">
+      <!-- Notifications -->
+      <button class="icon-btn" onclick="openNotifModal()" title="ডাক শব্দ (Notifications)">
+        <i class="fa-solid fa-bell"></i>
+        <span class="badge-counter" id="notifBadge" style="display: none;">0</span>
+      </button>
+      <!-- Messenger -->
+      <button class="icon-btn" onclick="openMessengerView()" title="ভুতগ্রাম (Messenger)">
+        <i class="fa-solid fa-message"></i>
+      </button>
+      <!-- Friends -->
+      <button class="icon-btn" onclick="openFriendsModal()" title="ভুত যোগ (Friends)">
+        <i class="fa-solid fa-user-group"></i>
+      </button>
+      <!-- Settings -->
+      <button class="icon-btn" onclick="openSettingsModal()" title="ভুত কুষ্ঠি ও সেটিংস">
+        <i class="fa-solid fa-gear"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- LIVE SYSTEM NOTICE BANNER -->
+  <div id="systemLiveNoticeBanner">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <i class="fa-solid fa-bullhorn fa-bounce"></i>
+      <strong id="liveNoticeText">জরুরি প্রেতসভা অনুষ্ঠিত হচ্ছে...</strong>
+    </div>
+    <button style="background: transparent; border: none; color: #ffd700; cursor: pointer;" onclick="document.getElementById('systemLiveNoticeBanner').style.display='none'">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <!-- AUTH VIEW -->
+  <div id="viewAuth" class="app-main" style="display: none; padding-top: 30px;">
+    <div class="bhoot-card" style="text-align: center; padding: 28px 20px;">
+      <i class="fa-solid fa-ghost" style="font-size: 46px; color: var(--accent-phantom); margin-bottom: 12px; filter: drop-shadow(0 0 15px var(--accent-glow));"></i>
+      <h2 style="font-size: 26px; margin-bottom: 6px;">প্রেতলোকের আহ্বান</h2>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">ছায়ামূর্তি ধারণ করে আত্মাদের জগতে প্রবেশ করুন</p>
+
+      <!-- Guidelines Modal Trigger if not accepted -->
+      <div id="authAgreementGate" style="background: rgba(0,255,157,0.06); border: 1px dashed var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 20px;">
+        <p style="font-size: 12.5px; margin-bottom: 8px;">* BhootBook শান্ত ও নির্জন আত্মাদের নিরাপদ জগৎ।</p>
+        <button class="btn btn-phantom" onclick="openAgreementModal()" id="btnAgreementCheck">
+          <i class="fa-solid fa-hand-holding-heart"></i> নীতিমালা পড়ুন ও সম্মতি দিন
+        </button>
+      </div>
+
+      <!-- Auth Form Container -->
+      <div id="authFormFields" style="display: none;">
+        <!-- Tabs Login / Register -->
+        <div style="display: flex; gap: 8px; margin-bottom: 18px;">
+          <button class="btn btn-phantom" id="tabAuthLogin" style="flex: 1;" onclick="setAuthTab('login')">প্রবেশ (Login)</button>
+          <button class="btn btn-outline" id="tabAuthRegister" style="flex: 1;" onclick="setAuthTab('register')">আত্মজন্ম (Sign Up)</button>
+        </div>
+
+        <form onsubmit="handleAuthSubmit(event)">
+          <div class="form-group" id="groupRegName" style="display: none; text-align: left; margin-bottom: 12px;">
+            <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">ভুতুড়ে নাম (Ghost Name):</label>
+            <input type="text" id="authDisplayName" class="form-input" placeholder="যেমন: আলেয়া পরী, মেছো ভূত..." />
+          </div>
+          <div class="form-group" id="groupRegGender" style="display: none; text-align: left; margin-bottom: 12px;">
+            <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">আত্মার রূপ (Gender):</label>
+            <select id="authGender" class="form-input">
+              <option value="male">পুরুষ ভূত (Bhoot)</option>
+              <option value="female">পেত্নী / শাকচুন্নি (Petni)</option>
+              <option value="other">দেহহীন আত্মা (Formless Spirit)</option>
+            </select>
+          </div>
+          <div class="form-group" style="text-align: left; margin-bottom: 12px;">
+            <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">ইমেল (Email):</label>
+            <input type="email" id="authEmail" class="form-input" placeholder="soul@ghostrealm.com" required />
+          </div>
+          <div class="form-group" style="text-align: left; margin-bottom: 14px;">
+            <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">গোপন সংকেত (Password):</label>
+            <input type="password" id="authPassword" class="form-input" placeholder="••••••••" minlength="6" required />
+          </div>
+
+          <!-- Dynamic Bhoot Captcha -->
+          <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-bottom: 14px; text-align: left;">
+            <label style="font-size: 12px; color: var(--accent-phantom);">প্রেত গাণিতিক প্রহরা (Captcha):</label>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+              <span id="captchaEquation" style="font-weight: bold; font-size: 15px; color: #fff;"></span>
+              <input type="number" id="captchaAnswer" class="form-input" placeholder="উত্তর" style="width: 90px;" required />
+            </div>
+          </div>
+
+          <!-- Remember Me -->
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; text-align: left; font-size: 13px;">
+            <input type="checkbox" id="authRememberMe" checked />
+            <label for="authRememberMe">আমাকে চিরতরে মনে রাখুন (Remember Me)</label>
+          </div>
+
+          <button type="submit" class="btn btn-phantom" style="width: 100%; justify-content: center; padding: 11px;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> প্রেতলোকে পদার্পণ
+          </button>
+        </form>
+
+        <div style="margin: 18px 0; border-top: 1px solid rgba(255,255,255,0.08); position: relative;">
+          <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--bg-card); padding: 0 8px; font-size: 11px; color: var(--text-muted);">বা</span>
+        </div>
+
+        <button class="btn btn-outline" onclick="handleGoogleSignIn()" style="width: 100%; justify-content: center;">
+          <i class="fa-brands fa-google" style="color: #ea4335;"></i> Google দিয়ে ছায়াপ্রবেশ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEED VIEW -->
+  <div id="viewFeed" class="app-main" style="display: none;">
+
+    <!-- User Mini Profile Strip -->
+    <div class="bhoot-card" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div class="ghost-avatar" id="userStripAvatar">
+          <i class="fa-solid fa-ghost"></i>
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <strong id="userStripName" style="color: #fff; font-size: 15px;">-</strong>
+            <span class="rank-pill" id="userStripRank">-</span>
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-muted);" id="userStripAge">ভুত জন্ম: ০ দিন</div>
+        </div>
+      </div>
+      <button class="btn btn-outline" onclick="openSettingsModal()" style="font-size: 11px; padding: 5px 10px;">
+        কুষ্ঠি
+      </button>
+    </div>
+
+    <!-- Create Post Card (Aatma Prakash) -->
+    <div class="bhoot-card">
+      <div style="display: flex; gap: 10px;">
+        <div class="ghost-avatar" id="composerAvatar" style="width: 36px; height: 36px; font-size: 16px;">
+          <i class="fa-solid fa-ghost"></i>
+        </div>
+        <div style="flex: 1;">
+          <textarea id="composerContent" class="composer-textarea" placeholder="প্রেতাত্মার মনে কি ক্ষোভ বা আনন্দ? আত্মাপ্রকাশ করুন..."></textarea>
+          
+          <!-- Image preview -->
+          <div id="composerMediaPreview" style="display: none; position: relative; margin-bottom: 10px;">
+            <img id="composerPreviewImg" src="" style="max-height: 180px; border-radius: 8px; border: 1px solid var(--border-color);" />
+            <button onclick="clearComposerMedia()" style="position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.7); border: none; color: #fff; border-radius: 50%; width: 26px; height: 26px; cursor: pointer;">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;">
+            <label class="btn btn-outline" style="font-size: 12px; padding: 6px 12px; cursor: pointer;">
+              <i class="fa-solid fa-image" style="color: var(--accent-phantom);"></i> ছবি
+              <input type="file" id="composerFileInput" accept="image/*" style="display: none;" onchange="handleComposerFile(event)" />
+            </label>
+            <button class="btn btn-phantom" id="btnPublishPost" onclick="publishPost()">
+              <i class="fa-solid fa-feather-pointed"></i> আত্মা প্রকাশ
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Posts Stream -->
+    <div id="feedPostsStream">
+      <!-- Injected live -->
+    </div>
+
+  </div>
+
+  <!-- FULLSCREEN BHOOTGRAM VIEW -->
+  <div id="viewMessenger">
+    <div class="messenger-header">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button class="icon-btn" onclick="closeMessengerView()">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div style="font-size: 18px; font-weight: bold; color: var(--accent-phantom);">
+          <i class="fa-solid fa-message"></i> ভুতগ্রাম (BhootGram)
+        </div>
+      </div>
+      <div id="chatActiveUserHeader" style="display: none; align-items: center; gap: 8px;">
+        <div class="ghost-avatar" style="width: 32px; height: 32px; font-size: 14px;"><i class="fa-solid fa-ghost"></i></div>
+        <div>
+          <strong id="chatRecipientName" style="font-size: 14px; color: #fff;">-</strong>
+          <span class="rank-pill rank-general" id="chatRecipientRank" style="font-size: 9px; padding: 1px 6px;">-</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="messenger-layout">
+      <!-- Sidebar of mutual friends -->
+      <div class="messenger-sidebar" id="messengerSidebar">
+        <div style="padding: 12px; border-bottom: 1px solid var(--border-color);">
+          <input type="text" id="messengerSearchInput" class="form-input" placeholder="ভুত সঙ্গী খুঁজুন..." oninput="filterMessengerFriends()" />
+        </div>
+        <div id="messengerFriendsList" style="flex: 1; overflow-y: auto; padding: 8px;">
+          <!-- Loaded live -->
+        </div>
+      </div>
+
+      <!-- Main Chat Area -->
+      <div class="messenger-chat-pane hide-mobile" id="messengerChatPane">
+        <div id="noChatSelectedNotice" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); padding: 24px; text-align: center;">
+          <i class="fa-solid fa-comments" style="font-size: 54px; margin-bottom: 12px; opacity: 0.3;"></i>
+          <p>কথোপকথন শুরু করতে বাঁ পাশের কোনো ভুত সঙ্গীকে নির্বাচন করুন</p>
+        </div>
+
+        <div id="activeChatArea" style="display: none; flex-direction: column; height: 100%;">
+          <!-- Messages -->
+          <div class="chat-messages-scroll" id="chatMessagesContainer">
+            <!-- Messages stream -->
+          </div>
+
+          <!-- Quoted reply banner -->
+          <div id="chatReplyBanner" style="display: none; background: rgba(0,255,157,0.08); border-left: 3px solid var(--accent-phantom); padding: 6px 14px; font-size: 12px; justify-content: space-between; align-items: center;">
+            <div>
+              <span style="color: var(--accent-phantom); font-weight: bold;" id="replyTargetAuthor">উত্তর দিচ্ছেন:</span>
+              <span id="replyTargetText" style="color: var(--text-muted); margin-left: 6px;"></span>
+            </div>
+            <button onclick="cancelReplyContext()" style="background: transparent; border: none; color: #fff; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+
+          <!-- Input Bar with Multimedia & Voice Recorder -->
+          <div style="background: var(--bg-panel); border-top: 1px solid var(--border-color); padding: 10px 14px; display: flex; align-items: center; gap: 8px;">
+            <!-- Attachment button -->
+            <label class="icon-btn" title="ফাইল বা ছবি সংযুক্তি" style="cursor: pointer;">
+              <i class="fa-solid fa-paperclip"></i>
+              <input type="file" id="chatMediaFileInput" style="display: none;" onchange="handleChatMediaAttachment(event)" />
+            </label>
+
+            <!-- Voice Record button -->
+            <button class="icon-btn" id="btnVoiceRecord" onclick="toggleVoiceRecording()" title="ভয়েস বার্তা রেকর্ড">
+              <i class="fa-solid fa-microphone"></i>
+            </button>
+
+            <!-- Text Input -->
+            <input type="text" id="chatMessageInput" class="form-input" placeholder="প্রেতবার্তা লিখুন..." onkeydown="if(event.key==='Enter') sendChatMessage()" />
+
+            <!-- Send button -->
+            <button class="btn btn-phantom" onclick="sendChatMessage()" style="padding: 10px 16px;">
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTIFICATIONS MODAL -->
+  <div class="modal-overlay" id="notifModal">
+    <div class="modal-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h3 style="font-size: 18px; color: var(--accent-phantom);">
+          <i class="fa-solid fa-bell"></i> ডাক শব্দ (Notifications)
+        </h3>
+        <div style="display: flex; gap: 6px;">
+          <!-- Bulk Mark as Read -->
+          <button class="btn btn-outline" style="font-size: 11px; padding: 4px 8px;" onclick="markAllNotificationsRead()" title="সব পঠিত করুন">
+            <i class="fa-solid fa-circle-check"></i> সব পঠিত
+          </button>
+          <button onclick="closeModal('notifModal')" style="background: transparent; border: none; color: #94a3b8; font-size: 16px; cursor: pointer;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+      <!-- Scrollable container -->
+      <div id="notifListContainer" style="max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+        <!-- Injected live -->
+      </div>
+    </div>
+  </div>
+
+  <!-- FRIENDS MODAL (Bhoot Jog) -->
+  <div class="modal-overlay" id="friendsModal">
+    <div class="modal-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h3 style="font-size: 18px; color: var(--accent-phantom);">
+          <i class="fa-solid fa-user-group"></i> ভুত যোগ (Ghost Companions)
+        </h3>
+        <button onclick="closeModal('friendsModal')" style="background: transparent; border: none; color: #94a3b8; font-size: 16px; cursor: pointer;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div style="display: flex; gap: 6px; margin-bottom: 14px;">
+        <button class="btn btn-phantom" id="tabFriendsMutual" style="flex: 1; font-size: 12px;" onclick="switchFriendsTab('mutual')">গৃহীত প্রেতসঙ্গী</button>
+        <button class="btn btn-outline" id="tabFriendsPending" style="flex: 1; font-size: 12px;" onclick="switchFriendsTab('pending')">আবেদন</button>
+        <button class="btn btn-outline" id="tabFriendsExplore" style="flex: 1; font-size: 12px;" onclick="switchFriendsTab('explore')">অন্যান্য আত্মা</button>
+      </div>
+
+      <div id="friendsTabContent" style="max-height: 55vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+        <!-- Injected live -->
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL & 5 THEMES -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 18px; color: var(--accent-phantom);">
+          <i class="fa-solid fa-gear"></i> ভুত কুষ্ঠি ও প্রেতরূপ
+        </h3>
+        <button onclick="closeModal('settingsModal')" style="background: transparent; border: none; color: #94a3b8; font-size: 16px; cursor: pointer;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Theme Selector (5 themes with SR7 credits) -->
+      <div class="bhoot-card" style="margin-bottom: 14px; padding: 12px;">
+        <h4 style="font-size: 13.5px; color: #fff; margin-bottom: 8px;">
+          <i class="fa-solid fa-palette"></i> অবয়ব থিম (Haunting Themes)
+        </h4>
+        <div style="display: flex; flex-direction: column; gap: 8px;" id="themeOptionsContainer">
+          <!-- Option 1 -->
+          <label style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; cursor: pointer;">
+            <div>
+              <strong>১. Bhoot Dark (Default Pitch)</strong>
+              <div style="font-size: 10px; color: var(--text-muted);">Designed by: SR7 Mods and SR7 Crasher</div>
+            </div>
+            <input type="radio" name="bhootTheme" value="theme-bhoot-dark" onchange="applyBhootTheme(this.value)" />
+          </label>
+          <!-- Option 2 -->
+          <label style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; cursor: pointer;">
+            <div>
+              <strong style="color: #c084fc;">২. Eerie Purple (Nishi Realm)</strong>
+              <div style="font-size: 10px; color: var(--text-muted);">Designed by: SR7 Mods and SR7 Crasher</div>
+            </div>
+            <input type="radio" name="bhootTheme" value="theme-nishi-purple" onchange="applyBhootTheme(this.value)" />
+          </label>
+          <!-- Option 3 -->
+          <label style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; cursor: pointer;">
+            <div>
+              <strong style="color: #ff003c;">৩. Blood Moon (Red Curse)</strong>
+              <div style="font-size: 10px; color: var(--text-muted);">Designed by: SR7 Mods and SR7 Crasher</div>
+            </div>
+            <input type="radio" name="bhootTheme" value="theme-blood-moon" onchange="applyBhootTheme(this.value)" />
+          </label>
+          <!-- Option 4 -->
+          <label style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; cursor: pointer;">
+            <div>
+              <strong style="color: #059669;">৪. Spectral White (Formless Spirit)</strong>
+              <div style="font-size: 10px; color: var(--text-muted);">Designed by: SR7 Mods and SR7 Crasher</div>
+            </div>
+            <input type="radio" name="bhootTheme" value="theme-spectral-white" onchange="applyBhootTheme(this.value)" />
+          </label>
+          <!-- Option 5 -->
+          <label style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; cursor: pointer;">
+            <div>
+              <strong style="color: #38bdf8;">৫. Haunted Fog (Animated Spectral)</strong>
+              <div style="font-size: 10px; color: var(--text-muted);">Designed by: SR7 Mods and SR7 Crasher</div>
+            </div>
+            <input type="radio" name="bhootTheme" value="theme-haunted-fog" onchange="applyBhootTheme(this.value)" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Name Change (15d cooldown) -->
+      <div class="bhoot-card" style="margin-bottom: 14px; padding: 12px;">
+        <h4 style="font-size: 13.5px; color: #fff; margin-bottom: 4px;">ভুতুড়ে নাম পরিবর্তন</h4>
+        <p id="nameCooldownText" style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+          * নাম পরিবর্তনের জন্য ১৫ দিনের বিরতি প্রয়োজন।
+        </p>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="settingNewName" class="form-input" placeholder="নতুন ভুতুড়ে নাম" />
+          <button class="btn btn-phantom" onclick="handleNameChange()">বদলান</button>
+        </div>
+      </div>
+
+      <!-- Password Reset Link/OTP -->
+      <div class="bhoot-card" style="margin-bottom: 14px; padding: 12px;">
+        <h4 style="font-size: 13.5px; color: #fff; margin-bottom: 4px;">পাসওয়ার্ড পরিবর্তন</h4>
+        <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+          আপনার ইমেলে পাসওয়ার্ড রিসেটের আনুষ্ঠানিক সংকেত পাঠানো হবে।
+        </p>
+        <button class="btn btn-outline" onclick="handleSendPasswordReset()">
+          <i class="fa-solid fa-key"></i> রিসেট লিংক পাঠান
+        </button>
+      </div>
+
+      <!-- Ghost Mode & Bio -->
+      <div class="bhoot-card" style="margin-bottom: 14px; padding: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 13px;">ছায়ামূর্তি মোড (Ghost Mode Transparency):</span>
+          <input type="checkbox" id="settingGhostMode" onchange="toggleGhostModeSetting(this.checked)" />
+        </div>
+        <div style="margin-bottom: 8px;">
+          <label style="font-size: 11.5px; color: var(--text-muted); display: block; margin-bottom: 4px;">প্রেতের ডায়েরি (Bio):</label>
+          <input type="text" id="settingBio" class="form-input" placeholder="আত্মার চিরন্তন ভাবনা..." />
+        </div>
+        <button class="btn btn-phantom" onclick="saveBioSetting()">সংরক্ষণ</button>
+      </div>
+
+      <button class="btn btn-blood" style="width: 100%; justify-content: center;" onclick="handleLogout()">
+        <i class="fa-solid fa-right-from-bracket"></i> প্রেতলোক ত্যাগ (Logout)
+      </button>
+    </div>
+  </div>
+
+  <!-- AGREEMENT MODAL -->
+  <div class="modal-overlay" id="agreementModal">
+    <div class="modal-box">
+      <h3 style="font-size: 18px; color: var(--accent-phantom); margin-bottom: 10px;">
+        <i class="fa-solid fa-scroll"></i> প্রেতলোক আচরণবিধি
+      </h3>
+      <div style="font-size: 13px; color: var(--text-main); line-height: 1.6; margin-bottom: 16px;">
+        ১. BhootBook অন্তর্মুখী ও শান্ত আত্মাদের জন্য নিবেদিত একটি ভুতুড়ে আশ্রয়স্থল।<br>
+        ২. এখানে কোনোপ্রকার সাইবার ট্রলিং, বিদ্বেষ ছড়ানো বা কাউকে আঘাত করা সম্পূর্ণ নিষিদ্ধ।<br>
+        ৩. নিয়মের অন্যথা হলে ব্রহ্মদৈত্য কর্তৃক তাত্ক্ষণিক নির্বাসন (Ban) বা তর্পণ নোটিশ জারি করা হবে।<br>
+      </div>
+      <button class="btn btn-phantom" style="width: 100%; justify-content: center;" onclick="acceptAgreement()">
+        [ আমি নিয়মে সম্মত ] (Get Accept)
+      </button>
+    </div>
+  </div>
+
+  <!-- FORWARD MESSAGE MODAL -->
+  <div class="modal-overlay" id="forwardModal">
+    <div class="modal-box">
+      <h3 style="font-size: 18px; color: var(--accent-phantom); margin-bottom: 12px;">
+        <i class="fa-solid fa-share"></i> প্রেতবার্তা ফরওয়ার্ড করুন
+      </h3>
+      <div id="forwardFriendsList" style="max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+        <!-- Injected live -->
+      </div>
+      <div style="margin-top: 14px; text-align: right;">
+        <button class="btn btn-outline" onclick="closeModal('forwardModal')">বাতিল</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT ENGINE -->
+  <script>
+    /* ==========================================================
+       1. Dynamic Runtime Credentials
+       ========================================================== */
+    const FIREBASE_CONFIG = {
+      apiKey: atob("QUl6YVN5QmhxaXlLLW9nQk1uempiNmhER2pBTHN5VllFd3c="),
+      authDomain: atob("Ymhvb3QtYm9vay5maXJlYmFzZWFwcC5jb20="),
+      databaseURL: atob("aHR0cHM6Ly9iaG9vdC1ib29rLWRlZmF1bHQtcnRkYi5maXJlYmFzZWlvLmNvbQ=="),
+      projectId: atob("Ymhvb3QtYm9vaw=="),
+      storageBucket: atob("Ymhvb3QtYm9vay5maXJlYmFzZXN0b3JhZ2UuYXBw"),
+      messagingSenderId: atob("NDc2NzU1MTQ2MjI4"),
+      appId: atob("MTo0NzY3NTUxNDYyMjg6d2ViOmNmN2E2NWVkZjY2NjgxZjMxMzVhMQ=="),
+      measurementId: atob("Ry02WEhOS0NWVjg=")
+    };
+
+    const GITHUB_STORAGE = {
+      repo: atob("aHR0cHM6Ly9naXRodWIuY29tL3NyN21vZHMvQmhvb3RCb29r"),
+      pat: atob("Z2l0aHViX3BhdF8xMUJEWldDTUEwa2lwTXJoVmZ6R1ZKX25QaWZmSEI4TnBRN1FLSkRxQlJSNVk2WWRtbkFMd0U0Qm1LRUxKeFBkYmFXNTRRR1pQSVRtQUZzM20=")
+    };
+
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const auth = firebase.auth();
+    const database = firebase.database();
+
+    /* ==========================================================
+       2. State Variables
+       ========================================================== */
+    let currentUser = null;
+    let currentUserProfile = null;
+    let activeChatRecipient = null;
+    let activeChatMessagesListener = null;
+    let replyContextMessage = null;
+    let forwardMessageData = null;
+    let captchaExpectedResult = 0;
+    let selectedComposerMedia = null;
+    let mediaRecorder = null;
+    let recordedAudioChunks = [];
+    let isRecordingVoice = false;
+
+    /* ==========================================================
+       3. In-App Toast & Custom Dialogs (Zero native alert/confirm)
+       ========================================================== */
+    function showToast(message, type = 'info', duration = 3800) {
+      const container = document.getElementById('bhootToastContainer');
+      const toast = document.createElement('div');
+      toast.className = `bhoot-toast ${type}`;
+      
+      let icon = 'fa-info-circle';
+      if (type === 'success') icon = 'fa-circle-check';
+      if (type === 'error') icon = 'fa-triangle-exclamation';
+      if (type === 'warning') icon = 'fa-triangle-exclamation';
+
+      toast.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid ${icon}"></i>
+          <span>${escapeHtml(message)}</span>
+        </div>
+        <button style="background:transparent; border:none; color:#718096; cursor:pointer;" onclick="this.parentElement.remove()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = 'toastIn 0.3s reverse forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    function showConfirmDialog({ title = 'নিশ্চিত করুন', message, confirmText = '[ নিশ্চিত করুন ]', cancelText = '[ বাতিল ]', onConfirm }) {
+      const modal = document.getElementById('bhootConfirmModal');
+      document.getElementById('bhootConfirmTitle').innerText = title;
+      document.getElementById('bhootConfirmMsg').innerText = message;
+      
+      const btnOk = document.getElementById('btnConfirmOk');
+      const btnCancel = document.getElementById('btnConfirmCancel');
+      btnOk.innerText = confirmText;
+      btnCancel.innerText = cancelText;
+
+      const cleanup = () => {
+        modal.classList.remove('active');
+        btnOk.onclick = null;
+        btnCancel.onclick = null;
+      };
+
+      btnCancel.onclick = cleanup;
+      btnOk.onclick = () => {
+        cleanup();
+        if (typeof onConfirm === 'function') onConfirm();
+      };
+
+      modal.classList.add('active');
+    }
+
+    function showPromptDialog({ title = 'ইনপুট দিন', placeholder = '', defaultValue = '', onConfirm }) {
+      const modal = document.getElementById('bhootPromptModal');
+      document.getElementById('bhootPromptTitle').innerText = title;
+      const input = document.getElementById('bhootPromptInput');
+      input.placeholder = placeholder;
+      input.value = defaultValue;
+
+      const btnOk = document.getElementById('btnPromptOk');
+      const btnCancel = document.getElementById('btnPromptCancel');
+
+      const cleanup = () => {
+        modal.classList.remove('active');
+        btnOk.onclick = null;
+        btnCancel.onclick = null;
+      };
+
+      btnCancel.onclick = cleanup;
+      btnOk.onclick = () => {
+        const val = input.value.trim();
+        cleanup();
+        if (typeof onConfirm === 'function') onConfirm(val);
+      };
+
+      modal.classList.add('active');
+      input.focus();
+    }
+
+    /* ==========================================================
+       4. Session Persistence & Hydration Aura Fix
+       ========================================================== */
+    function initPersistenceAndAuth() {
+      // 1. Check "Remember Me" choice
+      const isRemembered = localStorage.getItem('bhootbook_remember') !== 'false';
+      auth.setPersistence(isRemembered ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
+
+      // 2. Pre-hydrate from cached profile to eliminate blank screens
+      const cached = localStorage.getItem('bhootbook_cached_profile');
+      if (cached) {
+        try {
+          currentUserProfile = JSON.parse(cached);
+          applyUserProfileToUI(currentUserProfile);
+        } catch (e) {}
+      }
+
+      // 3. Auth state listener
+      auth.onAuthStateChanged(async (user) => {
+        const aura = document.getElementById('spectralLoadingAura');
+        if (user) {
+          currentUser = user;
+          // Listen to user profile
+          database.ref(`users/${user.uid}`).on('value', (snap) => {
+            const data = snap.val();
+            if (data) {
+              currentUserProfile = { uid: user.uid, ...data };
+              localStorage.setItem('bhootbook_cached_profile', JSON.stringify(currentUserProfile));
+              applyUserProfileToUI(currentUserProfile);
+              checkBanAndRestrictions();
+            }
+          });
+
+          // Attach Live Notice & Notifications listeners
+          listenToSystemNotice();
+          listenToNotifications(user.uid);
+          listenToFeedPosts();
+
+          switchView('feed');
+        } else {
+          currentUser = null;
+          currentUserProfile = null;
+          localStorage.removeItem('bhootbook_cached_profile');
+          switchView('auth');
+          generateCaptcha();
+        }
+
+        // Hide Loading Aura
+        setTimeout(() => {
+          aura.style.opacity = '0';
+          setTimeout(() => aura.style.display = 'none', 400);
+        }, 500);
+      });
+    }
+
+    function checkBanAndRestrictions() {
+      if (!currentUserProfile) return;
+      const banOverlay = document.getElementById('bannedScreenOverlay');
+      if (currentUserProfile.banned) {
+        banOverlay.style.display = 'flex';
+        document.getElementById('banOverlayReason').innerText = `কারণ: ${currentUserProfile.banReason || 'প্রেতলোক নীতি লঙ্ঘনের দায়ে অ্যাকাউন্ট নিষিদ্ধ।'}`;
+      } else {
+        banOverlay.style.display = 'none';
+      }
+
+      if (currentUserProfile.warningMessage) {
+        showToast(`[ভুত তর্পণ সতর্কবার্তা]: ${currentUserProfile.warningMessage}`, 'warning', 6000);
+      }
+    }
+
+    /* ==========================================================
+       5. Bengali Bhoot Rank Calculation & Custom Titles
+       ========================================================== */
+    function calculateBhootRank(createdAt, manualRank, gender, customTitle) {
+      if (customTitle) {
+        return { title: customTitle, css: 'rank-custom' };
+      }
+      if (manualRank === 'bramhadaitya') {
+        return { title: 'ব্রহ্মদৈত্য (Bramhadaitya)', css: 'rank-bramha' };
+      }
+      if (manualRank === 'ghyagho') {
+        return { title: 'ঘ্যাঘো (Ghyagho)', css: 'rank-ghyagho' };
+      }
+
+      const days = Math.max(0, Math.floor((Date.now() - (createdAt || Date.now())) / (1000 * 60 * 60 * 24)));
+      if (days <= 7) {
+        if (gender === 'female') return { title: 'পেত্নী (Petni)', css: 'rank-general' };
+        if (gender === 'other') return { title: 'দেহহীন আত্মা (Formless Spirit)', css: 'rank-general' };
+        return { title: 'সাধারণ ভূত (Bhoot)', css: 'rank-general' };
+      }
+      if (days <= 30) return { title: 'শাকচুন্নি / আলেয়া (Aleya)', css: 'rank-general' };
+      if (days <= 90) return { title: 'মেছো ভূত (Mecho Bhoot)', css: 'rank-general' };
+      if (days <= 180) return { title: 'মামদো ভূত (Mamdo Bhoot)', css: 'rank-general' };
+      return { title: 'নিশি ভূত (Nishi Bhoot)', css: 'rank-general' };
+    }
+
+    function applyUserProfileToUI(p) {
+      if (!p) return;
+      const rank = calculateBhootRank(p.createdAt, p.manualRank, p.gender, p.customTitle);
+      const days = Math.max(0, Math.floor((Date.now() - (p.createdAt || Date.now())) / (1000 * 60 * 60 * 24)));
+
+      document.getElementById('userStripName').innerText = p.displayName || 'অচেনা আত্মা';
+      const rankBadge = document.getElementById('userStripRank');
+      rankBadge.innerText = rank.title;
+      rankBadge.className = `rank-pill ${rank.css}`;
+
+      document.getElementById('userStripAge').innerText = `ভুত জন্ম: ${days} দিন`;
+
+      const avatar = document.getElementById('userStripAvatar');
+      if (p.ghostMode) avatar.classList.add('ghost-mode');
+      else avatar.classList.remove('ghost-mode');
+    }
+
+    /* ==========================================================
+       6. Live System Notice Banner Pipeline
+       ========================================================== */
+    function listenToSystemNotice() {
+      database.ref('system/notice').on('value', (snap) => {
+        const notice = snap.val();
+        const banner = document.getElementById('systemLiveNoticeBanner');
+        if (notice && notice.active && notice.text) {
+          document.getElementById('liveNoticeText').innerText = notice.text;
+          banner.style.display = 'flex';
+        } else {
+          banner.style.display = 'none';
+        }
+      });
+    }
+
+    /* ==========================================================
+       7. Expanded Notifications & Mass Read Acknowledgement
+       ========================================================== */
+    function listenToNotifications(uid) {
+      database.ref(`notifications/${uid}`).on('value', (snap) => {
+        const data = snap.val() || {};
+        const entries = Object.entries(data);
+        const unreadCount = entries.filter(([k, v]) => !v.read).length;
+
+        const badge = document.getElementById('notifBadge');
+        if (unreadCount > 0) {
+          badge.innerText = unreadCount;
+          badge.style.display = 'block';
+        } else {
+          badge.style.display = 'none';
+        }
+
+        renderNotificationsList(entries);
+      });
+    }
+
+    function renderNotificationsList(entries) {
+      const container = document.getElementById('notifListContainer');
+      if (entries.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">কোনো ডাক শব্দ নেই।</div>';
+        return;
+      }
+
+      entries.sort((a, b) => (b[1].timestamp || 0) - (a[1].timestamp || 0));
+      container.innerHTML = entries.map(([id, n]) => {
+        return `
+          <div style="background:var(--bg-panel); border:1px solid var(--border-color); border-radius:8px; padding:10px; cursor:pointer; opacity:${n.read ? 0.6 : 1};" onclick="markSingleNotifRead('${id}')">
+            <div style="font-size:13px; color:#fff; margin-bottom:4px;">${escapeHtml(n.text)}</div>
+            <div style="font-size:11px; color:var(--text-muted);">${new Date(n.timestamp).toLocaleString()}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function markSingleNotifRead(id) {
+      if (!currentUser) return;
+      await database.ref(`notifications/${currentUser.uid}/${id}`).update({ read: true });
+    }
+
+    async function markAllNotificationsRead() {
+      if (!currentUser) return;
+      const snap = await database.ref(`notifications/${currentUser.uid}`).once('value');
+      if (!snap.exists()) return;
+
+      const updates = {};
+      snap.forEach((child) => {
+        updates[`${child.key}/read`] = true;
+      });
+      await database.ref(`notifications/${currentUser.uid}`).update(updates);
+      showToast('সকল বিজ্ঞপ্তি পঠিত হিসেবে চিহ্নিত করা হয়েছে!', 'success');
+    }
+
+    /* ==========================================================
+       8. Real-Time Feed (Aatma Prakash) & Post Reactions
+       ========================================================== */
+    function listenToFeedPosts() {
+      database.ref('posts').limitToLast(40).on('value', (snap) => {
+        const stream = document.getElementById('feedPostsStream');
+        if (!snap.exists()) {
+          stream.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-muted);">এখনও কোনো আত্মা প্রকাশ ঘটেনি...</div>';
+          return;
+        }
+
+        const posts = [];
+        snap.forEach((child) => {
+          posts.unshift({ id: child.key, ...child.val() });
+        });
+
+        stream.innerHTML = posts.map(renderSinglePost).join('');
+      });
+    }
+
+    function renderSinglePost(p) {
+      const rank = calculateBhootRank(p.authorCreatedAt, p.authorManualRank, p.authorGender, p.authorCustomTitle);
+      const likesCount = p.reactions ? Object.keys(p.reactions).length : 0;
+      const isLiked = p.reactions && currentUserProfile && p.reactions[currentUserProfile.uid];
+      const commentsCount = p.comments ? Object.keys(p.comments).length : 0;
+
+      return `
+        <div class="bhoot-card" id="post-${p.id}">
+          <div class="post-header">
+            <div class="post-author-box">
+              <div class="ghost-avatar ${p.authorGhostMode ? 'ghost-mode' : ''}">
+                <i class="fa-solid fa-ghost"></i>
+              </div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <strong style="color: #fff; font-size: 14.5px;">${escapeHtml(p.authorName)}</strong>
+                  <span class="rank-pill ${rank.css}">${rank.title}</span>
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted);">${new Date(p.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+              </div>
+            </div>
+            ${p.authorUid === currentUserProfile?.uid ? `
+              <button onclick="deleteMyPost('${p.id}')" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer;">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            ` : ''}
+          </div>
+
+          <div class="post-content">${escapeHtml(p.content || '')}</div>
+
+          ${p.mediaUrl ? `<img src="${p.mediaUrl}" class="post-media" alt="Ghost Attachment" />` : ''}
+
+          <div class="post-actions-bar">
+            <button class="action-pill ${isLiked ? 'active' : ''}" onclick="toggleLikePost('${p.id}')">
+              <i class="fa-solid fa-hand-sparkles"></i> স্পর্শ (${likesCount})
+            </button>
+            <button class="action-pill" onclick="toggleCommentsSection('${p.id}')">
+              <i class="fa-solid fa-comment"></i> প্রেতবাণী (${commentsCount})
+            </button>
+          </div>
+
+          <!-- Inline comments -->
+          <div id="comments-box-${p.id}" style="display:none; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; max-height: 180px; overflow-y: auto;">
+              ${renderCommentsHTML(p.comments)}
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <input type="text" id="comment-input-${p.id}" class="form-input" placeholder="প্রেতবাণী লিখুন..." style="padding: 6px 10px; font-size: 12px;" onkeydown="if(event.key==='Enter') submitComment('${p.id}')" />
+              <button class="btn btn-phantom" style="padding: 4px 10px; font-size: 12px;" onclick="submitComment('${p.id}')">মন্তব্য</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCommentsHTML(comments) {
+      if (!comments) return '<span style="font-size:11px; color:var(--text-muted);">কোনো প্রেতবাণী এখনও উচ্চারিত হয়নি।</span>';
+      return Object.values(comments).map(c => `
+        <div style="background:rgba(255,255,255,0.03); border-radius:6px; padding:5px 8px; font-size:12px;">
+          <strong style="color:var(--accent-phantom);">${escapeHtml(c.authorName)}:</strong>
+          <span style="color:var(--text-main); margin-left:4px;">${escapeHtml(c.text)}</span>
+        </div>
+      `).join('');
+    }
+
+    function toggleCommentsSection(pid) {
+      const box = document.getElementById(`comments-box-${pid}`);
+      if (box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function submitComment(pid) {
+      if (!currentUserProfile) return;
+      if (currentUserProfile.disabled) {
+        showToast('আপনার অ্যাকাউন্টে মন্তব্য প্রদান স্থগিত রয়েছে।', 'error');
+        return;
+      }
+      const input = document.getElementById(`comment-input-${pid}`);
+      const text = input.value.trim();
+      if (!text) return;
+
+      await database.ref(`posts/${pid}/comments`).push({
+        authorUid: currentUserProfile.uid,
+        authorName: currentUserProfile.displayName,
+        text: text,
+        timestamp: Date.now()
+      });
+      input.value = '';
+    }
+
+    async function toggleLikePost(pid) {
+      if (!currentUserProfile) return;
+      const ref = database.ref(`posts/${pid}/reactions/${currentUserProfile.uid}`);
+      const snap = await ref.once('value');
+      if (snap.exists()) await ref.remove();
+      else await ref.set(Date.now());
+    }
+
+    function deleteMyPost(pid) {
+      showConfirmDialog({
+        title: 'পোস্ট অপসারণ',
+        message: 'আপনি কি এই প্রকাশনাটি চিরতরে বিলীন করতে চান?',
+        confirmText: '[ মুছে ফেলুন ]',
+        onConfirm: async () => {
+          await database.ref(`posts/${pid}`).remove();
+          showToast('পোস্ট মুছে ফেলা হয়েছে।', 'info');
+        }
+      });
+    }
+
+    /* ==========================================================
+       9. Media Upload Architecture via GitHub REST API
+       ========================================================== */
+    function handleComposerFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        selectedComposerMedia = file;
+        document.getElementById('composerPreviewImg').src = ev.target.result;
+        document.getElementById('composerMediaPreview').style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearComposerMedia() {
+      selectedComposerMedia = null;
+      document.getElementById('composerFileInput').value = '';
+      document.getElementById('composerMediaPreview').style.display = 'none';
+    }
+
+    async function uploadMediaToGitHub(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+          try {
+            const base64Content = reader.result.split(',')[1];
+            const cleanName = (file.name || 'ghost_file').replace(/[^a-zA-Z0-9._-]/g, '_');
+            const fileName = `uploads/${Date.now()}_${cleanName}`;
+            const url = `https://api.github.com/repos/sr7mods/BhootBook/contents/${fileName}`;
+
+            const response = await fetch(url, {
+              method: "PUT",
+              headers: {
+                "Authorization": `token ${GITHUB_STORAGE.pat}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                message: "Upload media content via BhootBook",
+                content: base64Content
+              })
+            });
+
+            const data = await response.json();
+            if (data.content && data.content.download_url) {
+              resolve(data.content.download_url);
+            } else {
+              // Fallback to dataURL
+              resolve(reader.result);
+            }
+          } catch (err) {
+            resolve(reader.result);
+          }
+        };
+      });
+    }
+
+    async function publishPost() {
+      if (!currentUserProfile) return;
+      if (currentUserProfile.disabled) {
+        showToast('আপনার অ্যাকাউন্টে পোস্ট প্রকাশ সাময়িকভাবে স্থগিত।', 'error');
+        return;
+      }
+
+      const content = document.getElementById('composerContent').value.trim();
+      if (!content && !selectedComposerMedia) {
+        showToast('পোস্টে কিছু অনুভূতি লিখুন বা ছবি যুক্ত করুন!', 'warning');
+        return;
+      }
+
+      const btn = document.getElementById('btnPublishPost');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> প্রকাশ হচ্ছে...';
+
+      let mediaUrl = null;
+      if (selectedComposerMedia) {
+        mediaUrl = await uploadMediaToGitHub(selectedComposerMedia);
+      }
+
+      await database.ref('posts').push({
+        authorUid: currentUserProfile.uid,
+        authorName: currentUserProfile.displayName,
+        authorCreatedAt: currentUserProfile.createdAt,
+        authorManualRank: currentUserProfile.manualRank || null,
+        authorCustomTitle: currentUserProfile.customTitle || null,
+        authorGender: currentUserProfile.gender || 'male',
+        authorGhostMode: !!currentUserProfile.ghostMode,
+        content: content,
+        mediaUrl: mediaUrl,
+        timestamp: Date.now()
+      });
+
+      document.getElementById('composerContent').value = '';
+      clearComposerMedia();
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-feather-pointed"></i> আত্মা প্রকাশ';
+      showToast('আত্মা প্রকাশ সফল হয়েছে!', 'success');
+    }
+
+    /* ==========================================================
+       10. BhootGram Messenger Overhaul (Fullscreen, Multimedia, Voice)
+       ========================================================== */
+    function openMessengerView() {
+      document.getElementById('viewMessenger').style.display = 'flex';
+      loadMessengerFriends();
+    }
+
+    function closeMessengerView() {
+      document.getElementById('viewMessenger').style.display = 'none';
+      if (activeChatMessagesListener) {
+        activeChatMessagesListener.off();
+        activeChatMessagesListener = null;
+      }
+    }
+
+    async function loadMessengerFriends() {
+      const container = document.getElementById('messengerFriendsList');
+      container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> ভুতগ্রাম লোড হচ্ছে...</div>';
+
+      const friendsSnap = await database.ref(`friends/${currentUserProfile.uid}`).once('value');
+      if (!friendsSnap.exists()) {
+        container.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">কোনো গৃহীত ভুত সঙ্গী নেই। আগে ভুত যোগ করুন।</p>';
+        return;
+      }
+
+      const list = [];
+      for (const [fUid, status] of Object.entries(friendsSnap.val())) {
+        if (status === 'accepted') {
+          const uSnap = await database.ref(`users/${fUid}`).once('value');
+          if (uSnap.exists()) list.push({ uid: fUid, ...uSnap.val() });
+        }
+      }
+
+      if (list.length === 0) {
+        container.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">কোনো গৃহীত ভুত সঙ্গী নেই।</p>';
+        return;
+      }
+
+      container.innerHTML = list.map(f => {
+        const rank = calculateBhootRank(f.createdAt, f.manualRank, f.gender, f.customTitle);
+        return `
+          <div class="bhoot-card" style="padding:10px; margin-bottom:6px; cursor:pointer; display:flex; align-items:center; gap:10px;" onclick="selectMessengerChat('${f.uid}', '${escapeHtml(f.displayName)}', '${rank.title}')">
+            <div class="ghost-avatar" style="width:34px; height:34px; font-size:15px;"><i class="fa-solid fa-ghost"></i></div>
+            <div style="flex:1;">
+              <strong style="color:#fff; font-size:13.5px;">${escapeHtml(f.displayName)}</strong>
+              <div style="font-size:11px; color:var(--accent-phantom);">${rank.title}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectMessengerChat(fUid, name, rankTitle) {
+      activeChatRecipient = { uid: fUid, name: name, rank: rankTitle };
+      document.getElementById('noChatSelectedNotice').style.display = 'none';
+      document.getElementById('activeChatArea').style.display = 'flex';
+      document.getElementById('chatActiveUserHeader').style.display = 'flex';
+      document.getElementById('chatRecipientName').innerText = name;
+      document.getElementById('chatRecipientRank').innerText = rankTitle;
+
+      // Unhide chat pane on mobile
+      document.getElementById('messengerChatPane').classList.remove('hide-mobile');
+
+      listenToActiveChatMessages();
+    }
+
+    function getChatId(uid1, uid2) {
+      return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
+    }
+
+    function listenToActiveChatMessages() {
+      if (activeChatMessagesListener) activeChatMessagesListener.off();
+      const chatId = getChatId(currentUserProfile.uid, activeChatRecipient.uid);
+      const container = document.getElementById('chatMessagesContainer');
+
+      activeChatMessagesListener = database.ref(`chats/${chatId}/messages`).limitToLast(50);
+      activeChatMessagesListener.on('value', (snap) => {
+        if (!snap.exists()) {
+          container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-muted); font-size:12px;">বার্তা আদান-প্রদান শুরু করুন...</div>';
+          return;
+        }
+
+        const msgs = [];
+        snap.forEach(c => msgs.push({ id: c.key, ...c.val() }));
+
+        container.innerHTML = msgs.map(m => renderChatMessage(m, chatId)).join('');
+        container.scrollTop = container.scrollHeight;
+      });
+    }
+
+    function renderChatMessage(m, chatId) {
+      const isMine = m.senderUid === currentUserProfile.uid;
+      return `
+        <div class="bubble-drag-wrapper" style="justify-content:${isMine ? 'flex-end' : 'flex-start'};">
+          ${!isMine ? `<i class="fa-solid fa-reply reply-peek-icon" onclick="setReplyContext('${m.id}', '${escapeHtml(m.senderName)}', '${escapeHtml(m.text || '')}')" title="উত্তর দিন"></i>` : ''}
+          <div class="chat-bubble ${isMine ? 'mine' : 'theirs'}">
+            ${m.replyTo ? `
+              <div class="quoted-box">
+                <strong>${escapeHtml(m.replyTo.senderName)}:</strong> ${escapeHtml(m.replyTo.text)}
+              </div>
+            ` : ''}
+
+            ${m.text ? `<div>${escapeHtml(m.text)}</div>` : ''}
+
+            ${m.mediaType === 'image' ? `<img src="${m.mediaUrl}" style="max-width:200px; border-radius:6px; margin-top:6px;" />` : ''}
+            ${m.mediaType === 'video' ? `<video src="${m.mediaUrl}" controls style="max-width:240px; border-radius:6px; margin-top:6px;"></video>` : ''}
+            ${m.mediaType === 'audio' ? `<audio src="${m.mediaUrl}" controls style="max-width:240px; margin-top:6px;"></audio>` : ''}
+            ${m.mediaType === 'file' ? `<a href="${m.mediaUrl}" target="_blank" style="color:inherit; font-size:12px; display:inline-flex; align-items:center; gap:6px; margin-top:4px;"><i class="fa-solid fa-file"></i> ফাইল ডাউনলোড</a>` : ''}
+
+            <div style="font-size:9.5px; opacity:0.7; text-align:right; margin-top:4px; display:flex; justify-content:flex-end; gap:8px; align-items:center;">
+              <span>${new Date(m.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+              ${isMine ? `
+                <span style="cursor:pointer; color:#ff003c;" onclick="unsendChatMessage('${chatId}', '${m.id}')" title="মুছে ফেলুন"><i class="fa-solid fa-trash"></i></span>
+              ` : ''}
+              <span style="cursor:pointer;" onclick="openForwardModal('${escapeHtml(m.text || 'ফাইল')}')" title="ফরওয়ার্ড করুন"><i class="fa-solid fa-share"></i></span>
+            </div>
+          </div>
+          ${isMine ? `<i class="fa-solid fa-reply reply-peek-icon" onclick="setReplyContext('${m.id}', 'নিজের বার্তা', '${escapeHtml(m.text || '')}')" title="উত্তর দিন"></i>` : ''}
+        </div>
+      `;
+    }
+
+    function setReplyContext(id, name, text) {
+      replyContextMessage = { id, senderName: name, text: text.substring(0, 50) };
+      document.getElementById('replyTargetAuthor').innerText = `${name}:`;
+      document.getElementById('replyTargetText').innerText = replyContextMessage.text;
+      document.getElementById('chatReplyBanner').style.display = 'flex';
+    }
+
+    function cancelReplyContext() {
+      replyContextMessage = null;
+      document.getElementById('chatReplyBanner').style.display = 'none';
+    }
+
+    async function sendChatMessage(mediaData = null) {
+      if (!activeChatRecipient || !currentUserProfile) return;
+      if (currentUserProfile.disabled) {
+        showToast('আপনার বার্তা প্রেরণ সাময়িকভাবে স্থগিত।', 'error');
+        return;
+      }
+
+      const input = document.getElementById('chatMessageInput');
+      const text = input.value.trim();
+      if (!text && !mediaData) return;
+
+      const chatId = getChatId(currentUserProfile.uid, activeChatRecipient.uid);
+      const payload = {
+        senderUid: currentUserProfile.uid,
+        senderName: currentUserProfile.displayName,
+        text: text,
+        timestamp: Date.now(),
+        replyTo: replyContextMessage
+      };
+
+      if (mediaData) {
+        payload.mediaType = mediaData.type;
+        payload.mediaUrl = mediaData.url;
+      }
+
+      await database.ref(`chats/${chatId}/messages`).push(payload);
+      input.value = '';
+      cancelReplyContext();
+    }
+
+    async function unsendChatMessage(chatId, msgId) {
+      showConfirmDialog({
+        title: 'বার্তা প্রত্যাহার',
+        message: 'আপনি কি এই বার্তাটি চিরতরে মুছে ফেলতে চান?',
+        confirmText: '[ মুছুন ]',
+        onConfirm: async () => {
+          await database.ref(`chats/${chatId}/messages/${msgId}`).remove();
+          showToast('বার্তা প্রত্যাহার করা হয়েছে।', 'info');
+        }
+      });
+    }
+
+    async function handleChatMediaAttachment(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      showToast('ফাইল আপলোড হচ্ছে...', 'info');
+      const cdnUrl = await uploadMediaToGitHub(file);
+
+      let mediaType = 'file';
+      if (file.type.startsWith('image/')) mediaType = 'image';
+      else if (file.type.startsWith('video/')) mediaType = 'video';
+      else if (file.type.startsWith('audio/')) mediaType = 'audio';
+
+      await sendChatMessage({ type: mediaType, url: cdnUrl });
+    }
+
+    /* MediaRecorder API Snippet for Voice Notes */
+    async function toggleVoiceRecording() {
+      const btn = document.getElementById('btnVoiceRecord');
+      if (!isRecordingVoice) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          recordedAudioChunks = [];
+
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) recordedAudioChunks.push(e.data);
+          };
+
+          mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(recordedAudioChunks, { type: 'audio/webm' });
+            const audioFile = new File([audioBlob], `voice_${Date.now()}.webm`, { type: 'audio/webm' });
+            showToast('ভয়েস বার্তা আপলোড হচ্ছে...', 'info');
+            const cdnUrl = await uploadMediaToGitHub(audioFile);
+            await sendChatMessage({ type: 'audio', url: cdnUrl });
+          };
+
+          mediaRecorder.start();
+          isRecordingVoice = true;
+          btn.style.color = '#ff003c';
+          btn.classList.add('fa-beat');
+          showToast('ভয়েস রেকর্ড হচ্ছে... শেষ করতে আবার চাপুন।', 'info');
+        } catch (err) {
+          showToast('মাইক্রোফোন সংযোগ ব্যর্থ!', 'error');
+        }
+      } else {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+        isRecordingVoice = false;
+        btn.style.color = '';
+        btn.classList.remove('fa-beat');
+      }
+    }
+
+    /* Message Forwarding */
+    function openForwardModal(text) {
+      forwardMessageData = text;
+      const modal = document.getElementById('forwardModal');
+      const container = document.getElementById('forwardFriendsList');
+      modal.classList.add('active');
+
+      database.ref(`friends/${currentUserProfile.uid}`).once('value', async (snap) => {
+        if (!snap.exists()) {
+          container.innerHTML = '<p style="color:var(--text-muted);">কোনো ভুত সঙ্গী নেই।</p>';
+          return;
+        }
+        const friends = [];
+        for (const [fUid, s] of Object.entries(snap.val())) {
+          if (s === 'accepted') {
+            const u = await database.ref(`users/${fUid}`).once('value');
+            if (u.exists()) friends.push({ uid: fUid, ...u.val() });
+          }
+        }
+        container.innerHTML = friends.map(f => `
+          <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-panel); padding:8px 12px; border-radius:6px;">
+            <span>${escapeHtml(f.displayName)}</span>
+            <button class="btn btn-phantom" style="font-size:11px; padding:4px 10px;" onclick="executeForwardMessage('${f.uid}')">পাঠান</button>
+          </div>
+        `).join('');
+      });
+    }
+
+    async function executeForwardMessage(targetUid) {
+      if (!forwardMessageData) return;
+      const chatId = getChatId(currentUserProfile.uid, targetUid);
+      await database.ref(`chats/${chatId}/messages`).push({
+        senderUid: currentUserProfile.uid,
+        senderName: currentUserProfile.displayName,
+        text: `[ফরওয়ার্ডকৃত]: ${forwardMessageData}`,
+        timestamp: Date.now()
+      });
+      closeModal('forwardModal');
+      showToast('বার্তা সফলভাবে ফরওয়ার্ড করা হয়েছে!', 'success');
+    }
+
+    /* ==========================================================
+       11. Real-Time Friend Request & Acceptance System
+       ========================================================== */
+    function openFriendsModal() {
+      document.getElementById('friendsModal').classList.add('active');
+      switchFriendsTab('mutual');
+    }
+
+    async function switchFriendsTab(tab) {
+      document.getElementById('tabFriendsMutual').className = tab === 'mutual' ? 'btn btn-phantom' : 'btn btn-outline';
+      document.getElementById('tabFriendsPending').className = tab === 'pending' ? 'btn btn-phantom' : 'btn btn-outline';
+      document.getElementById('tabFriendsExplore').className = tab === 'explore' ? 'btn btn-phantom' : 'btn btn-outline';
+
+      const container = document.getElementById('friendsTabContent');
+      container.innerHTML = '<div style="text-align:center; padding:15px; color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> লোড হচ্ছে...</div>';
+
+      const myFriendsSnap = await database.ref(`friends/${currentUserProfile.uid}`).once('value');
+      const myFriends = myFriendsSnap.val() || {};
+
+      if (tab === 'mutual') {
+        const mutualList = [];
+        for (const [fUid, status] of Object.entries(myFriends)) {
+          if (status === 'accepted') {
+            const u = await database.ref(`users/${fUid}`).once('value');
+            if (u.exists()) mutualList.push({ uid: fUid, ...u.val() });
+          }
+        }
+        if (mutualList.length === 0) {
+          container.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted);">কোনো গৃহীত ভুত সঙ্গী নেই।</p>';
+          return;
+        }
+        container.innerHTML = mutualList.map(f => `
+          <div class="bhoot-card" style="padding:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <strong>${escapeHtml(f.displayName)}</strong>
+              <span class="rank-pill rank-general" style="margin-left:6px;">প্রেত বন্ধু</span>
+            </div>
+            <button class="btn btn-outline" style="font-size:11px; padding:4px 8px; color:#ff003c;" onclick="removeBhootFriend('${f.uid}')">
+              ভুত বিচ্ছেদ
+            </button>
+          </div>
+        `).join('');
+      } else if (tab === 'pending') {
+        const pendingList = [];
+        for (const [fUid, status] of Object.entries(myFriends)) {
+          if (status === 'received' || status === 'sent') {
+            const u = await database.ref(`users/${fUid}`).once('value');
+            if (u.exists()) pendingList.push({ uid: fUid, status: status, ...u.val() });
+          }
+        }
+        if (pendingList.length === 0) {
+          container.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted);">কোনো অপেক্ষমাণ আবেদন নেই।</p>';
+          return;
+        }
+        container.innerHTML = pendingList.map(f => `
+          <div class="bhoot-card" style="padding:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <strong>${escapeHtml(f.displayName)}</strong>
+              <div style="font-size:11px; color:var(--text-muted);">${f.status === 'received' ? 'আপনাকে আবেদন পাঠিয়েছে' : 'আবেদন অপেক্ষমাণ'}</div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              ${f.status === 'received' ? `
+                <button class="btn btn-phantom" style="font-size:11px; padding:4px 8px;" onclick="acceptBhootRequest('${f.uid}')">গ্রহণ</button>
+                <button class="btn btn-outline" style="font-size:11px; padding:4px 8px;" onclick="rejectBhootRequest('${f.uid}')">বাতিল</button>
+              ` : `
+                <button class="btn btn-outline" style="font-size:11px; padding:4px 8px;" onclick="cancelBhootRequest('${f.uid}')">আবেদন প্রত্যাহার</button>
+              `}
+            </div>
+          </div>
+        `).join('');
+      } else {
+        // Explore other ghosts
+        const allUsersSnap = await database.ref('users').limitToLast(30).once('value');
+        const allUsers = allUsersSnap.val() || {};
+        const list = Object.entries(allUsers).filter(([uid]) => uid !== currentUserProfile.uid);
+
+        container.innerHTML = list.map(([uid, u]) => {
+          const status = myFriends[uid];
+          let actionBtn = `<button class="btn btn-phantom" style="font-size:11px; padding:4px 8px;" onclick="sendBhootRequest('${uid}')"><i class="fa-solid fa-user-plus"></i> ভুত যোগ</button>`;
+
+          if (status === 'accepted') {
+            actionBtn = `<span class="rank-pill rank-general"><i class="fa-solid fa-check"></i> প্রেত বন্ধু</span>`;
+          } else if (status === 'sent') {
+            actionBtn = `<button class="btn btn-outline" style="font-size:11px; padding:4px 8px;" onclick="cancelBhootRequest('${uid}')">অপেক্ষমাণ (বাতিল)</button>`;
+          } else if (status === 'received') {
+            actionBtn = `<button class="btn btn-phantom" style="font-size:11px; padding:4px 8px;" onclick="acceptBhootRequest('${uid}')">গ্রহণ করুন</button>`;
+          }
+
+          return `
+            <div class="bhoot-card" style="padding:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <strong>${escapeHtml(u.displayName || 'অচেনা')}</strong>
+              </div>
+              <div>${actionBtn}</div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    async function sendBhootRequest(targetUid) {
+      await database.ref(`friends/${currentUserProfile.uid}/${targetUid}`).set('sent');
+      await database.ref(`friends/${targetUid}/${currentUserProfile.uid}`).set('received');
+      await database.ref(`notifications/${targetUid}`).push({
+        type: 'friend_request',
+        text: `[ভুত যোগ]: ${currentUserProfile.displayName} আপনার সাথে যোগ দিতে চেয়েছেন।`,
+        timestamp: Date.now(),
+        read: false
+      });
+      showToast('ভুত যোগের আবেদন পাঠানো হয়েছে!', 'success');
+      switchFriendsTab('explore');
+    }
+
+    async function acceptBhootRequest(targetUid) {
+      await database.ref(`friends/${currentUserProfile.uid}/${targetUid}`).set('accepted');
+      await database.ref(`friends/${targetUid}/${currentUserProfile.uid}`).set('accepted');
+      await database.ref(`notifications/${targetUid}`).push({
+        type: 'friend_accept',
+        text: `[ভুত যোগ গৃহীত]: ${currentUserProfile.displayName} আপনার ভুত যোগ গ্রহণ করেছেন!`,
+        timestamp: Date.now(),
+        read: false
+      });
+      showToast('ভুত সঙ্গী গৃহীত হয়েছে!', 'success');
+      switchFriendsTab('mutual');
+    }
+
+    async function rejectBhootRequest(targetUid) {
+      await database.ref(`friends/${currentUserProfile.uid}/${targetUid}`).remove();
+      await database.ref(`friends/${targetUid}/${currentUserProfile.uid}`).remove();
+      showToast('আবেদন বাতিল করা হয়েছে।', 'info');
+      switchFriendsTab('pending');
+    }
+
+    async function cancelBhootRequest(targetUid) {
+      await database.ref(`friends/${currentUserProfile.uid}/${targetUid}`).remove();
+      await database.ref(`friends/${targetUid}/${currentUserProfile.uid}`).remove();
+      showToast('আবেদন প্রত্যাহার করা হয়েছে।', 'info');
+      switchFriendsTab('pending');
+    }
+
+    function removeBhootFriend(targetUid) {
+      showConfirmDialog({
+        title: 'ভুত বিচ্ছেদ',
+        message: 'আপনি কি এই আত্মার সাথে মায়ামুক্ত হয়ে ভুত বিচ্ছেদ করতে চান?',
+        confirmText: '[ বিচ্ছেদ ]',
+        onConfirm: async () => {
+          await database.ref(`friends/${currentUserProfile.uid}/${targetUid}`).remove();
+          await database.ref(`friends/${targetUid}/${currentUserProfile.uid}`).remove();
+          showToast('ভুত বিচ্ছেদ সম্পন্ন হয়েছে।', 'info');
+          switchFriendsTab('mutual');
+        }
+      });
+    }
+
+    /* ==========================================================
+       12. Multi-Theme Engine & Settings
+       ========================================================== */
+    function applyBhootTheme(themeClass) {
+      document.body.className = themeClass;
+      localStorage.setItem('bhootbook_theme', themeClass);
+      showToast(`থিম পরিবর্তিত হয়েছে: ${themeClass}`, 'info');
+    }
+
+    function loadSavedTheme() {
+      const saved = localStorage.getItem('bhootbook_theme') || 'theme-bhoot-dark';
+      document.body.className = saved;
+      const radio = document.querySelector(`input[name="bhootTheme"][value="${saved}"]`);
+      if (radio) radio.checked = true;
+    }
+
+    async function handleNameChange() {
+      if (!currentUserProfile) return;
+      const newName = document.getElementById('settingNewName').value.trim();
+      if (!newName) {
+        showToast('নতুন নাম লিখুন!', 'warning');
+        return;
+      }
+
+      const lastChange = currentUserProfile.lastNameChange || 0;
+      const daysSince = (Date.now() - lastChange) / (1000 * 60 * 60 * 24);
+      if (daysSince < 15) {
+        const left = Math.ceil(15 - daysSince);
+        showToast(`নাম পরিবর্তনের জন্য আরও ${left} দিন অপেক্ষা করতে হবে।`, 'error');
+        return;
+      }
+
+      await database.ref(`users/${currentUserProfile.uid}`).update({
+        displayName: newName,
+        lastNameChange: Date.now()
+      });
+      document.getElementById('settingNewName').value = '';
+      showToast('ভুতুড়ে নাম সফলভাবে পরিবর্তিত হয়েছে!', 'success');
+    }
+
+    async function handleSendPasswordReset() {
+      if (!currentUserProfile?.email) return;
+      try {
+        await auth.sendPasswordResetEmail(currentUserProfile.email);
+        showToast('আপনার ইমেলে পাসওয়ার্ড রিসেট লিংক পাঠানো হয়েছে!', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function toggleGhostModeSetting(val) {
+      if (!currentUserProfile) return;
+      await database.ref(`users/${currentUserProfile.uid}`).update({ ghostMode: val });
+      showToast(val ? 'ছায়ামূর্তি মোড সক্রিয়!' : 'ছায়ামূর্তি মোড নিষ্ক্রিয়!', 'info');
+    }
+
+    async function saveBioSetting() {
+      if (!currentUserProfile) return;
+      const bio = document.getElementById('settingBio').value.trim();
+      await database.ref(`users/${currentUserProfile.uid}`).update({ bio: bio });
+      showToast('ডায়েরি তথ্য সংরক্ষিত হয়েছে!', 'success');
+    }
+
+    /* ==========================================================
+       13. Authentication & Captcha Gate
+       ========================================================== */
+    function generateCaptcha() {
+      const a = Math.floor(Math.random() * 8) + 2;
+      const b = Math.floor(Math.random() * 8) + 1;
+      captchaExpectedResult = a + b;
+      document.getElementById('captchaEquation').innerText = `${a} + ${b} = ?`;
+      document.getElementById('captchaAnswer').value = '';
+    }
+
+    function openAgreementModal() {
+      document.getElementById('agreementModal').classList.add('active');
+    }
+
+    function acceptAgreement() {
+      closeModal('agreementModal');
+      document.getElementById('authAgreementGate').style.display = 'none';
+      document.getElementById('authFormFields').style.display = 'block';
+      showToast('নীতিমালায় সম্মতি প্রদান সম্পন্ন হয়েছে!', 'success');
+    }
+
+    let currentAuthTab = 'login';
+    function setAuthTab(tab) {
+      currentAuthTab = tab;
+      document.getElementById('tabAuthLogin').className = tab === 'login' ? 'btn btn-phantom' : 'btn btn-outline';
+      document.getElementById('tabAuthRegister').className = tab === 'register' ? 'btn btn-phantom' : 'btn btn-outline';
+      document.getElementById('groupRegName').style.display = tab === 'register' ? 'block' : 'none';
+      document.getElementById('groupRegGender').style.display = tab === 'register' ? 'block' : 'none';
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const ans = parseInt(document.getElementById('captchaAnswer').value, 10);
+      if (ans !== captchaExpectedResult) {
+        showToast('ভুল প্রেত গাণিতিক উত্তর! আবার চেষ্টা করুন।', 'error');
+        generateCaptcha();
+        return;
+      }
+
+      const email = document.getElementById('authEmail').value.trim();
+      const pass = document.getElementById('authPassword').value.trim();
+      const remember = document.getElementById('authRememberMe').checked;
+      localStorage.setItem('bhootbook_remember', remember ? 'true' : 'false');
+
+      try {
+        if (currentAuthTab === 'login') {
+          await auth.signInWithEmailAndPassword(email, pass);
+          showToast('প্রেতলোকে স্বাগতম!', 'success');
+        } else {
+          const name = document.getElementById('authDisplayName').value.trim() || 'প্রেত আত্মা';
+          const gender = document.getElementById('authGender').value;
+          const cred = await auth.createUserWithEmailAndPassword(email, pass);
+          
+          await database.ref(`users/${cred.user.uid}`).set({
+            displayName: name,
+            email: email,
+            gender: gender,
+            createdAt: Date.now(),
+            ghostMode: false,
+            bio: 'আমি প্রেতলোকের এক মুক্ত আত্মা।'
+          });
+          showToast('আত্মজন্ম সফল হয়েছে!', 'success');
+        }
+      } catch (err) {
+        showToast(`ত্রুটি: ${err.message}`, 'error');
+        generateCaptcha();
+      }
+    }
+
+    async function handleGoogleSignIn() {
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const res = await auth.signInWithPopup(provider);
+        const userSnap = await database.ref(`users/${res.user.uid}`).once('value');
+        if (!userSnap.exists()) {
+          await database.ref(`users/${res.user.uid}`).set({
+            displayName: res.user.displayName || 'ছায়া আত্মা',
+            email: res.user.email,
+            gender: 'other',
+            createdAt: Date.now(),
+            ghostMode: false,
+            bio: 'Google মায়াজাল পেরিয়ে প্রেতলোকে আগমন।'
+          });
+        }
+        showToast('Google দিয়ে সফলভাবে প্রেতলোকে প্রবেশ করেছেন!', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function handleLogout() {
+      showConfirmDialog({
+        title: 'প্রেতলোক প্রস্থান',
+        message: 'আপনি কি নিশ্চিতভাবে প্রেতলোক ত্যাগ করতে চান?',
+        confirmText: '[ প্রস্থান ]',
+        onConfirm: async () => {
+          await auth.signOut();
+          localStorage.removeItem('bhootbook_cached_profile');
+          location.reload();
+        }
+      });
+    }
+
+    /* ==========================================================
+       14. Navigation & Views
+       ========================================================== */
+    function switchView(view) {
+      document.getElementById('viewAuth').style.display = view === 'auth' ? 'block' : 'none';
+      document.getElementById('viewFeed').style.display = view === 'feed' ? 'block' : 'none';
+      document.getElementById('headerNavActions').style.display = view === 'feed' ? 'flex' : 'none';
+    }
+
+    function openNotifModal() { document.getElementById('notifModal').classList.add('active'); }
+    function openSettingsModal() { document.getElementById('settingsModal').classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, (m) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      }[m]));
+    }
+
+    // Anti-scraping
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.addEventListener('keydown', (e) => {
+      if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j')) ||
+        (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.key === 'S' || e.key === 's'))
+      ) {
+        e.preventDefault();
+        return false;
+      }
+    });
+
+    setInterval(() => {
+      try { Function('debugger')(); } catch (e) {}
+    }, 2000);
+
+    window.addEventListener('load', () => {
+      loadSavedTheme();
+      initPersistenceAndAuth();
+    });
+  </script>
+</body>
+</html>
